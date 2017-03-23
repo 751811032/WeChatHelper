@@ -9,11 +9,16 @@ import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.rain.wechathelper.exception.WechatException;
 import com.rain.wechathelper.model.WechatMeta;
+import com.rain.wechathelper.params.BaseRequestParams;
 import com.rain.wechathelper.service.BaseApi;
 import com.rain.wechathelper.service.BeforeLoginApi;
 import com.rain.wechathelper.service.LoginApi;
+import com.rain.wechathelper.util.DataUtil;
 import com.rain.wechathelper.util.Matchers;
 
 import java.io.File;
@@ -152,7 +157,7 @@ public class MainActivity extends Activity {
                             Toast.makeText(MainActivity.this,"登录超时",Toast.LENGTH_LONG).show();
                             wechatMeta.setTip(2);  //1 未扫描  0 扫描
                         } else {
-                            Log.i("扫描code={}", code);
+                            Log.i("我的信息","扫描code="+ code);
                         }
                     }
                 }
@@ -186,7 +191,6 @@ public class MainActivity extends Activity {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-
         return s;
     }
     /**
@@ -219,6 +223,13 @@ public class MainActivity extends Activity {
                     wechatMeta.setWxsid(Matchers.match("<wxsid>(\\S+)</wxsid>", res));
                     wechatMeta.setWxuin(Matchers.match("<wxuin>(\\S+)</wxuin>", res));
                     wechatMeta.setPass_ticket(Matchers.match("<pass_ticket>(\\S+)</pass_ticket>", res));
+
+                    BaseRequestParams params = new BaseRequestParams();
+                    params.setUin(wechatMeta.getWxuin());
+                    params.setSid(wechatMeta.getWxsid());
+                    params.setSkey(wechatMeta.getSkey());
+                    params.setDeviceID(wechatMeta.getDeviceId());
+                    wechatMeta.setBaseRequest(params);
                 }
             }
 
@@ -233,6 +244,69 @@ public class MainActivity extends Activity {
             }
         });
     }
+
+    /**
+     * 微信初始化
+     */
+    public void wxInit(String baseUrl,WechatMeta wechatMeta) {
+        String url = wechatMeta.getBase_uri() + "/webwxinit?r=" + DataUtil.getCurrentUnixTime() + "&pass_ticket="
+                + wechatMeta.getPass_ticket() + "&skey=" + wechatMeta.getSkey();
+
+        LoginApi api = new LoginApi(baseUrl) ;
+
+        Gson gson = new Gson();
+        String jsonObject = gson.toJson(wechatMeta.getBaseRequest()); // {"name":"怪盗kidou","age":24}
+
+        api.WxInit(url, jsonObject, new BaseApi.ApiCallback() {
+            @Override
+            public void onSuccess(String res) {
+
+            }
+            @Override
+            public void onError(int err_code) {
+
+            }
+            @Override
+            public void onFailure(Throwable t) {
+
+            }
+        });
+
+        HttpRequest request = HttpRequest.post(url).contentType("application/json;charset=utf-8")
+                .header("Cookie", wechatMeta.getCookie()).send(body.toString());
+
+        Log.d("wechatserviceimp",""+ request);
+        String res = request.body();
+        request.disconnect();
+
+        if (StringKit.isBlank(res)) {
+            throw new WechatException("微信初始化失败");
+        }
+
+        try {
+            JSONObject jsonObject = JSONKit.parseObject(res);
+            if (null != jsonObject) {
+                JSONObject BaseResponse = jsonObject.get("BaseResponse").asJSONObject();
+                if (null != BaseResponse) {
+                    int ret = BaseResponse.getInt("Ret", -1);
+                    if (ret == 0) {
+                        wechatMeta.setSyncKey(jsonObject.get("SyncKey").asJSONObject());
+                        wechatMeta.setUser(jsonObject.get("User").asJSONObject());
+
+                        StringBuffer synckey = new StringBuffer();
+                        JSONArray list = wechatMeta.getSyncKey().get("List").asArray();
+                        for (int i = 0, len = list.size(); i < len; i++) {
+                            JSONObject item = list.get(i).asJSONObject();
+                            synckey.append("|" + item.getInt("Key", 0) + "_" + item.getInt("Val", 0));
+                        }
+                        wechatMeta.setSynckey(synckey.substring(1));
+                    }
+                }
+            }
+        } catch (Exception e) {
+        }
+    }
+
     /**
      * 加载本地图片
      * @param url

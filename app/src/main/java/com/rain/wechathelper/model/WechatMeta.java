@@ -1,6 +1,7 @@
 package com.rain.wechathelper.model;
 
 import com.rain.wechathelper.Constant;
+import com.rain.wechathelper.params.BaseRequestParams;
 import com.rain.wechathelper.util.DataUtil;
 
 public class WechatMeta {
@@ -20,7 +21,7 @@ public class WechatMeta {
 	
 	private String cookie;
 	
-//	private JSONObject baseRequest;
+	private BaseRequestParams baseRequest;
 //	private JSONObject SyncKey;
 //	private JSONObject User;
 	
@@ -92,15 +93,15 @@ public class WechatMeta {
 		this.cookie = cookie;
 	}
 
-//	public JSONObject getBaseRequest() {
-//		return baseRequest;
-//	}
-//
-//	public void setBaseRequest(JSONObject baseRequest) {
-//		this.baseRequest = baseRequest;
-//	}
-//
-//	public JSONObject getSyncKey() {
+	public BaseRequestParams getBaseRequest() {
+		return baseRequest;
+	}
+
+	public void setBaseRequest(BaseRequestParams baseRequest) {
+		this.baseRequest = baseRequest;
+	}
+
+	//	public JSONObject getSyncKey() {
 //		return SyncKey;
 //	}
 //
