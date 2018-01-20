@@ -3,7 +3,7 @@ package com.rain.wechathelper.service;
 import android.util.Log;
 
 import com.rain.wechathelper.exception.WechatException;
-import com.rain.wechathelper.model.BaseData;
+
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
